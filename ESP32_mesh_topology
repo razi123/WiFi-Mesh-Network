@@ -1,0 +1,182 @@
+// Arduino Software Codes
+
+// Preprocessor directives 
+
+#include<WiFi.h>
+#include<MQTTClient.h>
+
+// Initialize the SSID named and password
+
+const char ssid[] = "TP-LINK_KHAZI";
+const char pass[] = "khazi1234";
+byte mac[6];
+
+// Declare object "net" to the class "WiFiClient"
+// Declare object "client" to the class "MQTTClient"
+
+WiFiClient net;
+MQTTClient client;
+unsigned long lastMillis = 0;
+void connect();
+
+void setup()
+{
+
+// Select the baudrate and begin the wifi communication
+
+Serial.begin(115200);
+WiFi.begin(ssid,pass);
+delay(100);
+
+// Connect WiFi client to the MQTT broker
+
+client.begin("iot.eclipse.org",net);
+connect();
+}
+
+void connect(){
+
+// Check WiFi status,if not connected the try reconnecting
+
+Serial.print("Connecting.. ");
+while(WiFi.status()!=WL_CONNECTED){
+Serial.print(".");
+delay(1000);
+
+
+}
+
+// Displays connected access point name(SSID name)
+
+Serial.println("");
+Serial.print("Connected to ");
+Serial.println(WiFi.SSID());
+
+
+// Connecing from local server to the IoT.eclipse.org
+// If not connected to the MQTT server then wait till reconnects
+
+
+Serial.print("\nConnecting....");
+while(!client.connect("arduino_rx","try","try")){
+Serial.print(".");
+
+}
+
+// Displays the MAC address of the device
+
+WiFi.macAddress(mac);
+Serial.println("");
+Serial.print(mac[5],HEX);
+Serial.print(":");
+Serial.print(mac[5],HEX);
+Serial.print(":");
+Serial.print(mac[4],HEX);
+Serial.print(":");
+Serial.print(mac[3],HEX);
+Serial.print(":");
+Serial.print(mac[2],HEX);
+Serial.print(":");
+Serial.print(mac[1],HEX);
+Serial.print(":");
+
+Serial.print(mac[0],HEX);
+
+//client subscribes to the topic name "esp_star"
+client.subscribe("/esp_star");
+}
+
+
+void loop()
+{
+// This should always be in loop, to keep MQTT active/alive
+
+client.loop();
+delay(10);
+
+if(!client.connected())
+{
+connect();
+}
+}
+
+
+void messageReceived(String topic, String payload , char *bytes, unsigned int length)
+{
+// Predefined MAC address of the devices for decoding the incomming messages
+
+String sub_temp,sub_temp1;
+String esp_r1 = "64";
+String esp_r2 = "72";
+String esp_r3 = "244";
+String esp_r4 = "252";
+String esp_green = "156";
+
+// Extraction of 2 digit or 3 digit MAC address into temporary variables
+sub_temp = payload.substring(0,2);
+sub_temp1 = payload.substring(0,3);
+
+// Decoding the Message and segregating based on the MAC ID of the device
+// If MAC ID match the predefined MAC ID then displays the information on the screen
+// Its prior known tha,
+// Temperature sensor is connected to esp_r1,
+// Pressure sensor is connected esp_r2
+// Humidity sensor is connected to esp_r3
+// Hall effect sensor connected to esp_green
+
+if(sub_temp == esp_r1){
+Serial.print("Temp : ");
+Serial.println(payload.substring(2));
+}
+
+else if(sub_temp == esp_r2){
+Serial.print("Pressure : ");
+Serial.println(payload.substring(2));
+}
+
+else if((sub_temp == esp_r3)||(sub_temp1 == esp_r3)){
+Serial.print("Humidity : ");
+Serial.println(payload.substring(3));
+}
+
+else if((sub_temp == esp_r4)||(sub_temp1 == esp_r4)){
+Serial.print("Accelerometer : ");
+Serial.println(payload.substring(3));
+}
+
+else if((sub_temp == esp_green)||(sub_temp1 == esp_green)){
+Serial.print("Halleffect sensor : ");
+Serial.println(payload.substring(3));
+}
+
+//If any MAC ID did not match then display "some problem"
+
+else{
+Serial.println("Some problem..");
+}
+}
+
+//To Send data from nodes to hub in star topology:
+
+void loop()
+{
+client.loop();
+delay(10);// <- fixes some issues with WiFi stability
+String pld = "";
+pld += mac[5];
+if (!client.connected()) {
+connect();
+}
+
+// publish a message roughly every second.
+
+if (millis() - lastMillis > 2000) {
+lastMillis = millis();
+//float sen_val = analogRead(5);
+float x = 19.45;
+pld += x;
+
+//publish sensor packet(pld)to the mqtt broker
+client.publish("/esp_star",pld);
+}
+}

@@ -28,11 +28,7 @@
      1. Google search: Kolban-ESP32, Neilkoblan book on Esp-32, May 2017
      2. ESP32: https://espressif.com/en/esp-wroom-32
      
- # Project report 
-    
-    Project report can be downloaded from the following link
-    link: https://www.slideshare.net/raziuddinkhazi/wifi-mesh-networkesp32-mstar-and-mesh-topology
-    
+     
  # Implementation
     1. Please follow the guidelines in the report.
     2. Mesh topology and star topology have different approach so please access the report from the link above.
